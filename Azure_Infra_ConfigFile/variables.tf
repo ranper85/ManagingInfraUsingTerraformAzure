@@ -39,3 +39,13 @@ variable "linux_virtual_machine_name" {
   type        = string
   description = "Linux VM name in Azure"
 }
+
+variable "project_name" {
+  description = "Prefix for monitoring resources"
+  type        = string
+}
+
+variable "alert_email" {
+  description = "Email address to receive alerts"
+  type        = string
+}
