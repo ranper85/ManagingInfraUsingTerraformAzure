@@ -34,5 +34,13 @@
 # rm tfplan.json
 # rm -r .terraform/
 
+# Install stress tool
+# sudo apt-get update
+# sudo apt-get install stress
+
+# Generate high CPU load
+# This will use 4 workers, each spinning on a sqrt() calculation for 300 seconds
+# stress --cpu 6 --timeout 300
+
 # The doc for creating service principal
 # https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/guides/service_principal_client_secret
