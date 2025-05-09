@@ -1,44 +1,6 @@
-# 1. Log Analytics Workspace
-resource "azurerm_log_analytics_workspace" "log_analytics" {
-  name                = "loganalytics-${var.project_name}"
-  location            = azurerm_resource_group.rg.location
-  resource_group_name = azurerm_resource_group.rg.name
-  sku                 = "PerGB2018"
-  retention_in_days   = 30
 
-  tags = {
-    environment = "staging"
-  }
-}
 
-# 2. Diagnostic Settings for the Linux VM
-resource "azurerm_monitor_diagnostic_setting" "vm_diagnostics" {
-  name                       = "linuxvm-diagnostics"
-  target_resource_id         = azurerm_linux_virtual_machine.linuxvm.id
-  log_analytics_workspace_id = azurerm_log_analytics_workspace.log_analytics.id
-
-  log_analytics_destination_type = "Dedicated"
-
-  logs {
-    category = "LinuxSyslog"
-    enabled  = true
-
-    retention_policy {
-      enabled = false
-    }
-  }
-
-  metric {
-    category = "AllMetrics"  # This is a valid metric category
-    enabled  = true
-
-    retention_policy {
-      enabled = false
-    }
-  }
-}
-
-# 3. Action Group for Alerts
+# 1. Action Group for Alerts
 resource "azurerm_monitor_action_group" "alert_group" {
   name                = "vm-alerts-${var.project_name}"
   resource_group_name = azurerm_resource_group.rg.name
@@ -55,7 +17,7 @@ resource "azurerm_monitor_action_group" "alert_group" {
   }
 }
 
-# 4. CPU Usage Alert (Triggers if CPU > 80%)
+# 2. CPU Usage Alert (Triggers if CPU > 60%)
 resource "azurerm_monitor_metric_alert" "cpu_alert" {
   name                = "high-cpu-alert"
   resource_group_name = azurerm_resource_group.rg.name
@@ -81,4 +43,42 @@ resource "azurerm_monitor_metric_alert" "cpu_alert" {
   tags = {
     environment = "staging"
   }
+
+  depends_on = [
+    azurerm_linux_virtual_machine.linuxvm,
+    azurerm_monitor_action_group.alert_group
+  ]
+}
+
+# 3. When Available Memory Bytes < 20 for 5 min(default)
+resource "azurerm_monitor_metric_alert" "memory_alert" {
+  name                = "low-memory-alert"
+  resource_group_name = azurerm_resource_group.rg.name
+  scopes              = [azurerm_linux_virtual_machine.linuxvm.id]
+  description         = "Action will be triggered when Free disk space is less than 20."
+  severity            = 3
+  frequency           = "PT1M"
+  window_size         = "PT5M"
+  enabled             = true
+
+  criteria {
+    metric_namespace = "Microsoft.Compute/virtualMachines"
+    metric_name      = "Available Memory Bytes"
+    aggregation      = "Average"
+    operator         = "LessThan"
+    threshold        = 1073741824 
+  }
+
+  action {
+    action_group_id = azurerm_monitor_action_group.alert_group.id
+  }
+
+  tags = {
+    environment = "staging"
+  }
+
+  depends_on = [
+    azurerm_linux_virtual_machine.linuxvm,
+    azurerm_monitor_action_group.alert_group
+  ]
 }
